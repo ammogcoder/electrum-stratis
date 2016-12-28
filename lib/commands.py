@@ -246,13 +246,13 @@ class Commands:
         tx = Transaction(tx)
         return self.network.broadcast(tx, timeout)
 
-    @command('')
-    def createmultisig(self, num, pubkeys):
-        """Create multisig address"""
-        assert isinstance(pubkeys, list), (type(num), type(pubkeys))
-        redeem_script = Transaction.multisig_script(pubkeys, num)
-        address = hash_160_to_bc_address(hash_160(redeem_script.decode('hex')), 5)
-        return {'address':address, 'redeemScript':redeem_script}
+    # @command('')
+    # def createmultisig(self, num, pubkeys):
+    #     """Create multisig address"""
+    #     assert isinstance(pubkeys, list), (type(num), type(pubkeys))
+    #     redeem_script = Transaction.multisig_script(pubkeys, num)
+    #     address = hash_160_to_bc_address(hash_160(redeem_script.decode('hex')), 5)
+    #     return {'address':address, 'redeemScript':redeem_script}
 
     @command('w')
     def freeze(self, address):
