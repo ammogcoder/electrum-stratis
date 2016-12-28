@@ -1,15 +1,16 @@
 # -*- mode: python -*-
 
-home = 'C:\\electrum\\'
+home = 'C:\\electrum-stratis\\'
 
 # We don't put these files in to actually include them in the script but to make the Analysis method scan them for imports
-a = Analysis([home+'electrum',
+a = Analysis([home+'electrum-stratis',
               home+'gui/qt/main_window.py',
               home+'gui/text.py',
               home+'lib/util.py',
               home+'lib/wallet.py',
               home+'lib/simple_config.py',
-              home+'lib/bitcoin.py',
+              home+'lib/stratis.py',
+              home+'lib/blockchain.py',
               home+'lib/dnssec.py',
               home+'lib/commands.py',
               home+'plugins/cosigner_pool/qt.py',
@@ -65,7 +66,7 @@ exe = EXE(pyz,
           a.scripts,
           a.binaries,
           a.datas,
-          name=os.path.join('build\\pyi.win32\\electrum', 'electrum.exe'),
+          name=os.path.join('build\\pyi.win32\\electrum-stratis', 'electrum-stratis.exe'),
           debug=False,
           strip=None,
           upx=False,
@@ -82,4 +83,4 @@ coll = COLLECT(exe,
                debug=False,
                icon=home+'icons/electrum.ico',
                console=False,
-               name=os.path.join('dist', 'electrum'))
+               name=os.path.join('dist', 'electrum-stratis'))

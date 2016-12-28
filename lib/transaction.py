@@ -28,8 +28,8 @@
 # Note: The deserialization code originally comes from ABE.
 
 
-import bitcoin
-from bitcoin import *
+import stratis
+from stratis import *
 from util import print_error, profiler
 import time
 import sys
@@ -359,7 +359,7 @@ def parse_scriptSig(d, bytes):
     d['x_pubkeys'] = x_pubkeys
     d['pubkeys'] = pubkeys
     d['redeemScript'] = redeemScript
-    d['address'] = hash_160_to_bc_address(hash_160(redeemScript.decode('hex')), 5)
+    d['address'] = hash_160_to_bc_address(hash_160(redeemScript.decode('hex')),125)
 
 
 
@@ -382,7 +382,7 @@ def get_address_from_output_script(bytes):
     # p2sh
     match = [ opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUAL ]
     if match_decoded(decoded, match):
-        return TYPE_ADDRESS, hash_160_to_bc_address(decoded[1][1],5)
+        return TYPE_ADDRESS, hash_160_to_bc_address(decoded[1][1],125)
 
     return TYPE_SCRIPT, bytes
 
@@ -428,6 +428,7 @@ def deserialize(raw):
     d = {}
     start = vds.read_cursor
     d['version'] = vds.read_int32()
+    d['nTime'] = vds.read_uint32()
     n_vin = vds.read_compact_size()
     d['inputs'] = list(parse_input(vds) for i in xrange(n_vin))
     n_vout = vds.read_compact_size()
@@ -517,11 +518,15 @@ class Transaction:
         return d
 
     @classmethod
-    def from_io(klass, inputs, outputs, locktime=0):
+    def from_io(klass, inputs, outputs, locktime=0, nTime=0):
         self = klass(None)
         self._inputs = inputs
         self._outputs = outputs
         self.locktime = locktime
+        if nTime == 0:
+            self.time = int(time.time()) # bitspill
+        else:
+            self.time = nTime
         return self
 
     @classmethod
@@ -540,11 +545,11 @@ class Transaction:
             return addr.encode('hex')
         elif output_type == TYPE_ADDRESS:
             addrtype, hash_160 = bc_address_to_hash_160(addr)
-            if addrtype == 0:
+            if addrtype == 63:
                 script = '76a9'                                      # op_dup, op_hash_160
                 script += push_script(hash_160.encode('hex'))
                 script += '88ac'                                     # op_equalverify, op_checksig
-            elif addrtype == 5:
+            elif addrtype == 125:
                 script = 'a9'                                        # op_hash_160
                 script += push_script(hash_160.encode('hex'))
                 script += '87'                                       # op_equal
@@ -625,7 +630,9 @@ class Transaction:
     def serialize(self, for_sig=None):
         inputs = self.inputs()
         outputs = self.outputs()
+        time = self.time # bitspill
         s = int_to_hex(1, 4)                                         # version
+        s += int_to_hex(time,4) # bitspill    
         s += var_int(len(inputs))                                    # number of inputs
         for i, txin in enumerate(inputs):
             s += self.serialize_input(txin, i, for_sig)
@@ -723,7 +730,7 @@ class Transaction:
                     for_sig = Hash(self.tx_for_sig(i).decode('hex'))
                     pkey = regenerate_key(sec)
                     secexp = pkey.secret
-                    private_key = bitcoin.MySigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
+                    private_key = stratis.MySigningKey.from_secret_exponent( secexp, curve = SECP256k1 )
                     public_key = private_key.get_verifying_key()
                     sig = private_key.sign_digest_deterministic( for_sig, hashfunc=hashlib.sha256, sigencode = ecdsa.util.sigencode_der )
                     assert public_key.verify_digest( sig, for_sig, sigdecode = ecdsa.util.sigdecode_der)

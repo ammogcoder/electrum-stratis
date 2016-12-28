@@ -3,9 +3,9 @@ from kivy.factory import Factory
 from kivy.properties import ObjectProperty
 from kivy.lang import Builder
 
-from electrum.bitcoin import FEE_STEP, RECOMMENDED_FEE
-from electrum.util import fee_levels
-from electrum_gui.kivy.i18n import _
+from electrum_stratis.stratis import FEE_STEP, RECOMMENDED_FEE
+from electrum_stratis.util import fee_levels
+from electrum_stratis_gui.kivy.i18n import _
 
 Builder.load_string('''
 <BumpFeeDialog@Popup>

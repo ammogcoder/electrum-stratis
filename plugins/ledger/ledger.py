@@ -5,14 +5,18 @@ import time
 import sys
 import traceback
 
-import electrum
-from electrum.bitcoin import EncodeBase58Check, DecodeBase58Check, TYPE_ADDRESS, int_to_hex, var_int
-from electrum.i18n import _
-from electrum.plugins import BasePlugin, hook
-from electrum.keystore import Hardware_KeyStore, parse_xpubkey
+import electrum_stratis as electrum
+from electrum_stratis.stratis import EncodeBase58Check, DecodeBase58Check, bc_address_to_hash_160, hash_160_to_bc_address, TYPE_ADDRESS, int_to_hex, var_int
+from electrum_stratis.i18n import _
+from electrum_stratis.plugins import BasePlugin, hook
+from electrum_stratis.keystore import Hardware_KeyStore, parse_xpubkey
 from ..hw_wallet import HW_PluginBase
-from electrum.util import format_satoshis_plain, print_error
+from electrum_stratis.util import format_satoshis_plain, print_error
 
+
+def setAlternateCoinVersions(self, regular, p2sh):
+    apdu = [ self.BTCHIP_CLA, 0x14, 0x00, 0x00, 0x02, regular, p2sh ]
+    self.dongle.exchange(bytearray(apdu))
 
 try:
     import hid
@@ -23,6 +27,7 @@ try:
     from btchip.btchipPersoWizard import StartBTChipPersoDialog
     from btchip.btchipFirmwareWizard import checkFirmware, updateFirmware
     from btchip.btchipException import BTChipException
+    btchip.setAlternateCoinVersions = setAlternateCoinVersions
     BTCHIP = True
     BTCHIP_DEBUG = False
 except ImportError:
@@ -112,7 +117,10 @@ class Ledger_Client():
 
     def perform_hw1_preflight(self):
         try:
-            firmware = self.dongleObject.getFirmwareVersion()['version'].split(".")
+            ver = self.dongleObject.getFirmwareVersion()
+            firmware = ver['version'].split(".")
+            self.canAlternateCoinVersions = (ver['specialVersion'] >= 0x20 and
+                                             map(int, firmware) >= [1, 0, 1])
             if not checkFirmware(firmware):
                 self.dongleObject.dongle.close()
                 raise Exception("HW1 firmware version too old. Please update at https://www.ledgerwallet.com")
@@ -137,6 +145,8 @@ class Ledger_Client():
                     raise Exception('Aborted by user - please unplug the dongle and plug it again before retrying')
                 pin = pin.encode()
                 self.dongleObject.verifyPin(pin)
+                if self.canAlternateCoinVersions:
+                    self.dongleObject.setAlternateCoinVersions(48, 5)
         except BTChipException, e:
             if (e.sw == 0x6faa):
                 raise Exception("Dongle is temporarily locked - please unplug it and replug it again")
@@ -314,6 +324,10 @@ class Ledger_KeyStore(Hardware_KeyStore):
                     changeAmount = amount
                 else:
                     output = address
+                    if not self.canAlternateCoinVersions:
+                        v, h = bc_address_to_hash_160(address)
+                        if v == 48:
+                            output = hash_160_to_bc_address(h, 0)
                     outputAmount = amount
 
         self.handler.show_message(_("Confirm Transaction on your Ledger device..."))
@@ -479,7 +493,7 @@ class LedgerPlugin(HW_PluginBase):
         #client.handler = wizard
         client.handler = self.create_handler(wizard)
         #client.get_xpub('m')
-        client.get_xpub("m/44'/0'") # TODO replace by direct derivation once Nano S > 1.1
+        client.get_xpub("m/44'/2'") # TODO replace by direct derivation once Nano S > 1.1
 
     def get_xpub(self, device_id, derivation, wizard):
         devmgr = self.device_manager()

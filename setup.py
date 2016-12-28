@@ -28,12 +28,12 @@ if platform.system() in ['Linux', 'FreeBSD', 'DragonFly']:
         else:
             usr_share = os.path.expanduser('~/.local/share')
     data_files += [
-        (os.path.join(usr_share, 'applications/'), ['electrum.desktop']),
-        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum.png'])
+        (os.path.join(usr_share, 'applications/'), ['electrum-stratis.desktop']),
+        (os.path.join(usr_share, 'pixmaps/'), ['icons/electrum-stratis.png'])
     ]
 
 setup(
-    name="Electrum",
+    name="Electrum-Stratis",
     version=version.ELECTRUM_VERSION,
     install_requires=[
         'slowaes>=0.1a1',
@@ -46,41 +46,39 @@ setup(
         'jsonrpclib',
     ],
     packages=[
-        'electrum',
-        'electrum_gui',
-        'electrum_gui.qt',
-        'electrum_plugins',
-        'electrum_plugins.audio_modem',
-        'electrum_plugins.cosigner_pool',
-        'electrum_plugins.email_requests',
-        'electrum_plugins.exchange_rate',
-        'electrum_plugins.greenaddress_instant',
-        'electrum_plugins.hw_wallet',
-        'electrum_plugins.keepkey',
-        'electrum_plugins.labels',
-        'electrum_plugins.ledger',
-        'electrum_plugins.trezor',
-        'electrum_plugins.trustedcoin',
-        'electrum_plugins.virtualkeyboard',
+        'electrum_stratis',
+        'electrum_stratis_gui',
+        'electrum_stratis_gui.qt',
+        'electrum_stratis_plugins',
+        'electrum_stratis_plugins.audio_modem',
+        'electrum_stratis_plugins.cosigner_pool',
+        'electrum_stratis_plugins.email_requests',
+        'electrum_stratis_plugins.exchange_rate',
+        'electrum_stratis_plugins.hw_wallet',
+        'electrum_stratis_plugins.keepkey',
+        'electrum_stratis_plugins.labels',
+        'electrum_stratis_plugins.ledger',
+        'electrum_stratis_plugins.plot',
+        'electrum_stratis_plugins.trezor',
+        'electrum_stratis_plugins.virtualkeyboard',
     ],
     package_dir={
-        'electrum': 'lib',
-        'electrum_gui': 'gui',
-        'electrum_plugins': 'plugins',
+        'electrum_stratis': 'lib',
+        'electrum_stratis_gui': 'gui',
+        'electrum_stratis_plugins': 'plugins',
     },
     package_data={
-        'electrum': [
+        'electrum_stratis': [
             'www/index.html',
             'wordlist/*.txt',
             'locale/*/LC_MESSAGES/electrum.mo',
         ]
     },
-    scripts=['electrum'],
+    scripts=['electrum-stratis'],
     data_files=data_files,
-    description="Lightweight Bitcoin Wallet",
-    author="Thomas Voegtlin",
-    author_email="thomasv@electrum.org",
+    description="Lightweight Stratis Wallet",
+    author="dev0tion",
     license="MIT Licence",
-    url="https://electrum.org",
-    long_description="""Lightweight Bitcoin Wallet"""
+    url="http://www.stratisplatform.com",
+    long_description="""Lightweight Stratis Wallet"""
 )

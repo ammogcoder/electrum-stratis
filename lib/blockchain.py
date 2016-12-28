@@ -27,16 +27,17 @@
 
 import os
 import util
-from bitcoin import *
+from stratis import *
 
-MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+# MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+MAX_TARGET = 0x02710
 
 class Blockchain(util.PrintError):
     '''Manages blockchain headers and their verification'''
     def __init__(self, config, network):
         self.config = config
         self.network = network
-        self.headers_url = "https://headers.electrum.org/blockchain_headers"
+        self.headers_url = "http://stratisplatform.com/download/blockchain_headers"
         self.local_height = 0
         self.set_local_height()
 
@@ -51,30 +52,59 @@ class Blockchain(util.PrintError):
     def verify_header(self, header, prev_header, bits, target):
         prev_hash = self.hash_header(prev_header)
         assert prev_hash == header.get('prev_block_hash'), "prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash'))
-        assert bits == header.get('bits'), "bits mismatch: %s vs %s" % (bits, header.get('bits'))
+        #assert bits == header.get('bits'), "bits mismatch: %s vs %s" % (bits, header.get('bits'))
         _hash = self.hash_header(header)
         assert int('0x' + _hash, 16) <= target, "insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target)
-
+    
+    
+    # def verify_chain(self, chain):
+    #     first_header = chain[0]
+    #     prev_header = self.read_header(first_header.get('block_height') - 1)
+    #     for header in chain:
+    #         height = header.get('block_height')
+    #         bits, target = self.get_target(height / 2016, chain)
+    #         self.verify_header(header, prev_header, bits, target)
+    #         prev_header = header
     def verify_chain(self, chain):
         first_header = chain[0]
         prev_header = self.read_header(first_header.get('block_height') - 1)
         for header in chain:
             height = header.get('block_height')
-            bits, target = self.get_target(height / 2016, chain)
-            self.verify_header(header, prev_header, bits, target)
+            prev_hash = self.hash_header(prev_header)
+            _hash = self.hash_header(header)
+            assert prev_hash == header.get('prev_block_hash')
             prev_header = header
 
+
+    # def verify_chunk(self, index, data):
+    #     num = len(data) / 80
+    #     prev_header = None
+    #     if index != 0:
+    #         prev_header = self.read_header(index*2016 - 1)
+    #     bits, target = self.get_target(index)
+    #     for i in range(num):
+    #         raw_header = data[i*80:(i+1) * 80]
+    #         header = self.deserialize_header(raw_header)
+    #         self.verify_header(header, prev_header, bits, target)
+    #         prev_header = header
     def verify_chunk(self, index, data):
         num = len(data) / 80
         prev_header = None
-        if index != 0:
+        if index == 0:
+            previous_hash = ("0"*64)
+        else:
             prev_header = self.read_header(index*2016 - 1)
-        bits, target = self.get_target(index)
+            if prev_header is None: raise
+            previous_hash = self.hash_header(prev_header)
         for i in range(num):
-            raw_header = data[i*80:(i+1) * 80]
+            height = index*2016 + i
+            raw_header = data[i*80:(i+1)*80]
             header = self.deserialize_header(raw_header)
-            self.verify_header(header, prev_header, bits, target)
-            prev_header = header
+            _hash = self.hash_header(header)
+            assert previous_hash == header.get('prev_block_hash')
+            previous_header = header
+            previous_hash = _hash
+
 
     def serialize_header(self, res):
         s = int_to_hex(res.get('version'), 4) \
@@ -158,7 +188,8 @@ class Blockchain(util.PrintError):
 
     def get_target(self, index, chain=None):
         if index == 0:
-            return 0x1d00ffff, MAX_TARGET
+            return 0x1e0fffff, MAX_TARGET
+        # Stratis: go back the full period unless it's the first retarget
         first = self.read_header((index-1) * 2016)
         last = self.read_header(index*2016 - 1)
         if last is None:
@@ -175,10 +206,29 @@ class Blockchain(util.PrintError):
         target = bitsBase << (8 * (bitsN-3))
         # new target
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 14 * 24 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
+        nTargetTimespan = 60
+        
+        #nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
+        #nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
+        #new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
+        
+        bnTargetLimit = 10000
+        nTargetSpacing = 60
+        nInterval = nTargetTimespan / nTargetSpacing
+        bnNew = last.get('bits')
+        bnNew *= ((nInterval - 1) * nTargetSpacing + nActualTimespan + nActualTimespan)
+        bnNew = bnNew / ((nInterval + 1) * nTargetSpacing)
+
+        if bnNew <= 0:
+            bnNew = bnTargetLimit
+        
+        if bnNew > bnTargetLimit:
+            bnNew = bnTargetLimit
+
+        new_target = bnNew
+
+        self.print_msg("New target: ", new_target)
+
         # convert new target to bits
         c = ("%064x" % new_target)[2:]
         while c[:2] == '00' and len(c) > 6:
@@ -188,6 +238,7 @@ class Blockchain(util.PrintError):
             bitsN += 1
             bitsBase >>= 8
         new_bits = bitsN << 24 | bitsBase
+        self.print_msg("New bits: ", new_bits)
         return new_bits, bitsBase << (8 * (bitsN-3))
 
     def connect_header(self, chain, header):

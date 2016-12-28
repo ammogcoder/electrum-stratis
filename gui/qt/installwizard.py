@@ -5,11 +5,11 @@ from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 import PyQt4.QtCore as QtCore
 
-import electrum
-from electrum.wallet import Wallet
-from electrum.util import UserCancelled
-from electrum.base_wizard import BaseWizard
-from electrum.i18n import _
+import electrum_stratis as electrum
+from electrum_stratis.wallet import Wallet
+from electrum_stratis.util import UserCancelled
+from electrum_stratis.base_wizard import BaseWizard
+from electrum_stratis.i18n import _
 
 from seed_dialog import SeedLayout, KeysLayout
 from network_dialog import NetworkChoiceLayout
@@ -22,7 +22,7 @@ class GoBack(Exception):
 
 MSG_GENERATING_WAIT = _("Electrum is generating your addresses, please wait...")
 MSG_ENTER_ANYTHING = _("Please enter a seed phrase, a master key, a list of "
-                       "Bitcoin addresses, or a list of private keys")
+                       "Stratis addresses, or a list of private keys")
 MSG_ENTER_SEED_OR_MPK = _("Please enter a seed phrase or a master key (xpub or xprv):")
 MSG_COSIGNER = _("Please enter the master public key of cosigner #%d:")
 MSG_ENTER_PASSWORD = _("Choose a password to encrypt your wallet keys.") + '\n'\
@@ -140,7 +140,7 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
         hbox.setStretchFactor(inner_vbox, 1)
         outer_vbox.addLayout(hbox)
         outer_vbox.addLayout(Buttons(self.back_button, self.next_button))
-        self.set_icon(':icons/electrum.png')
+        self.set_icon(':icons/electrum-stratis.png')
         self.show()
         self.raise_()
         self.refresh_gui()  # Need for QT on MacOSX.  Lame.
@@ -264,14 +264,9 @@ class InstallWizard(QDialog, MessageBoxMixin, BaseWizard):
 
     @wizard_dialog
     def restore_seed_dialog(self, run_next, test):
-        options = []
-        if self.opt_ext:
-            options.append('ext')
-        if self.opt_bip39:
-            options.append('bip39')
         title = _('Enter Seed')
         message = _('Please enter your seed phrase in order to restore your wallet.')
-        return self.seed_input(title, message, test, options)
+        return self.seed_input(title, message, test, ['ext', 'bip39'])
 
     @wizard_dialog
     def confirm_seed_dialog(self, run_next, test):

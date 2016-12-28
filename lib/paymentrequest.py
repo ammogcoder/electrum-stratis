@@ -40,17 +40,17 @@ try:
 except ImportError:
     sys.exit("Error: could not find paymentrequest_pb2.py. Create it with 'protoc --proto_path=lib/ --python_out=lib/ lib/paymentrequest.proto'")
 
-import bitcoin
+import stratis
 import util
 from util import print_error
 import transaction
 import x509
 import rsakey
 
-from bitcoin import TYPE_ADDRESS
+from stratis import TYPE_ADDRESS
 
-REQUEST_HEADERS = {'Accept': 'application/bitcoin-paymentrequest', 'User-Agent': 'Electrum'}
-ACK_HEADERS = {'Content-Type':'application/bitcoin-payment','Accept':'application/bitcoin-paymentack','User-Agent':'Electrum'}
+REQUEST_HEADERS = {'Accept': 'application/stratis-paymentrequest', 'User-Agent': 'Electrum'}
+ACK_HEADERS = {'Content-Type':'application/stratis-payment','Accept':'application/stratis-paymentack','User-Agent':'Electrum'}
 
 ca_path = requests.certs.where()
 ca_list, ca_keyID = x509.load_certificates(ca_path)
@@ -67,49 +67,32 @@ PR_PAID    = 3     # send and propagated
 def get_payment_request(url):
     u = urlparse.urlparse(url)
     if u.scheme in ['http', 'https']:
-        try:
-            response = requests.request('GET', url, headers=REQUEST_HEADERS)
-            response.raise_for_status()
-            # Guard against `bitcoin:`-URIs with invalid payment request URLs
-            if "Content-Type" not in response.headers \
-            or response.headers["Content-Type"] != "application/bitcoin-paymentrequest":
-                data = None
-                error = "payment URL not pointing to a payment request handling server"
-            else:
-                data = response.content
-            print_error('fetched payment request', url, len(response.content))
-        except requests.exceptions.RequestException:
-            data = None
-            error = "payment URL not pointing to a valid server"
+        response = requests.request('GET', url, headers=REQUEST_HEADERS)
+        data = response.content
+        print_error('fetched payment request', url, len(data))
     elif u.scheme == 'file':
-        try:
-            with open(u.path, 'r') as f:
-                data = f.read()
-        except IOError:
-            data = None
-            error = "payment URL not pointing to a valid file"
+        with open(u.path, 'r') as f:
+            data = f.read()
     else:
         raise BaseException("unknown scheme", url)
-    pr = PaymentRequest(data, error)
+    pr = PaymentRequest(data)
     return pr
 
 
 class PaymentRequest:
 
-    def __init__(self, data, error=None):
+    def __init__(self, data):
         self.raw = data
-        self.error = error
         self.parse(data)
         self.requestor = None # known after verify
         self.tx = None
+        self.error = None
 
     def __str__(self):
         return self.raw
 
     def parse(self, r):
-        if self.error:
-            return
-        self.id = bitcoin.sha256(r)[0:16].encode('hex')
+        self.id = stratis.sha256(r)[0:16].encode('hex')
         try:
             self.data = pb2.PaymentRequest()
             self.data.ParseFromString(r)
@@ -130,24 +113,22 @@ class PaymentRequest:
         #return self.get_outputs() != [(TYPE_ADDRESS, self.get_requestor(), self.get_amount())]
 
     def verify(self, contacts):
-        if self.error:
-            return False
         if not self.raw:
             self.error = "Empty request"
-            return False
+            return
         pr = pb2.PaymentRequest()
         try:
             pr.ParseFromString(self.raw)
         except:
             self.error = "Error: Cannot parse payment request"
-            return False
+            return
         if not pr.signature:
             # the address will be dispayed as requestor
             self.requestor = None
             return True
         if pr.pki_type in ["x509+sha256", "x509+sha1"]:
             return self.verify_x509(pr)
-        elif pr.pki_type in ["dnssec+btc", "dnssec+ecdsa"]:
+        elif pr.pki_type in ["dnssec+strat", "dnssec+ecdsa"]:
             return self.verify_dnssec(pr, contacts)
         else:
             self.error = "ERROR: Unsupported PKI Type for Message Signature"
@@ -196,12 +177,12 @@ class PaymentRequest:
         if info.get('validated') is not True:
             self.error = "Alias verification failed (DNSSEC)"
             return False
-        if pr.pki_type == "dnssec+btc":
+        if pr.pki_type == "dnssec+strat":
             self.requestor = alias
             address = info.get('address')
             pr.signature = ''
             message = pr.SerializeToString()
-            if bitcoin.verify_message(address, sig, message):
+            if stratis.verify_message(address, sig, message):
                 self.error = 'Verified with DNSSEC'
                 return True
             else:
@@ -321,12 +302,12 @@ def make_unsigned_request(req):
 
 
 def sign_request_with_alias(pr, alias, alias_privkey):
-    pr.pki_type = 'dnssec+btc'
+    pr.pki_type = 'dnssec+strat'
     pr.pki_data = str(alias)
     message = pr.SerializeToString()
-    ec_key = bitcoin.regenerate_key(alias_privkey)
-    address = bitcoin.address_from_private_key(alias_privkey)
-    compressed = bitcoin.is_compressed(alias_privkey)
+    ec_key = stratis.regenerate_key(alias_privkey)
+    address = stratis.address_from_private_key(alias_privkey)
+    compressed = stratis.is_compressed(alias_privkey)
     pr.signature = ec_key.sign_message(message, compressed, address)
 
 
@@ -430,7 +411,7 @@ def serialize_request(req):
     requestor = req.get('name')
     if requestor and signature:
         pr.signature = signature.decode('hex')
-        pr.pki_type = 'dnssec+btc'
+        pr.pki_type = 'dnssec+strat'
         pr.pki_data = str(requestor)
     return pr
 

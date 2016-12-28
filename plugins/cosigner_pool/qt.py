@@ -31,20 +31,19 @@ import xmlrpclib
 from PyQt4.QtGui import *
 from PyQt4.QtCore import *
 
-from electrum import bitcoin, util
-from electrum import transaction
-from electrum.plugins import BasePlugin, hook
-from electrum.i18n import _
-from electrum.wallet import Multisig_Wallet
+from electrum_stratis import stratis, util
+from electrum_stratis import transaction
+from electrum_stratis.plugins import BasePlugin, hook
+from electrum_stratis.i18n import _
 
-from electrum_gui.qt.transaction_dialog import show_transaction
+from electrum_stratis_gui.qt.transaction_dialog import show_transaction
 
 import sys
 import traceback
 
 
 PORT = 12344
-HOST = 'cosigner.electrum.org'
+HOST = 'ecdsa.net'
 server = xmlrpclib.ServerProxy('http://%s:%d'%(HOST,PORT), allow_none=True)
 
 
@@ -115,7 +114,7 @@ class Plugin(BasePlugin):
 
     def update(self, window):
         wallet = window.wallet
-        if type(wallet) != Multisig_Wallet:
+        if wallet.wallet_type not in ['2of2', '2of3']:
             return
         if self.listener is None:
             self.print_error("starting listener")
@@ -129,9 +128,9 @@ class Plugin(BasePlugin):
         self.cosigner_list = []
         for key, keystore in wallet.keystores.items():
             xpub = keystore.get_master_public_key()
-            K = bitcoin.deserialize_xkey(xpub)[-1].encode('hex')
-            _hash = bitcoin.Hash(K).encode('hex')
-            if not keystore.is_watching_only():
+            K = stratis.deserialize_xkey(xpub)[-1].encode('hex')
+            _hash = stratis.Hash(K).encode('hex')
+            if wallet.master_private_keys.get(key):
                 self.keys.append((key, _hash, window))
             else:
                 self.cosigner_list.append((window, xpub, K, _hash))
@@ -158,7 +157,7 @@ class Plugin(BasePlugin):
             d.cosigner_send_button.hide()
 
     def cosigner_can_sign(self, tx, cosigner_xpub):
-        from electrum.keystore import is_xpubkey, parse_xpubkey
+        from electrum_stratis.keystore import is_xpubkey, parse_xpubkey
         xpub_set = set([])
         for txin in tx.inputs():
             for x_pubkey in txin['x_pubkeys']:
@@ -171,7 +170,7 @@ class Plugin(BasePlugin):
         for window, xpub, K, _hash in self.cosigner_list:
             if not self.cosigner_can_sign(tx, xpub):
                 continue
-            message = bitcoin.encrypt_message(tx.raw, K)
+            message = stratis.encrypt_message(tx.raw, K)
             try:
                 server.put(_hash, message)
             except Exception as e:
@@ -190,7 +189,7 @@ class Plugin(BasePlugin):
             return
 
         wallet = window.wallet
-        if wallet.has_password():
+        if wallet.use_encryption:
             password = window.password_dialog('An encrypted transaction was retrieved from cosigning pool.\nPlease enter your password to decrypt it.')
             if not password:
                 return
@@ -199,12 +198,12 @@ class Plugin(BasePlugin):
             if not window.question(_("An encrypted transaction was retrieved from cosigning pool.\nDo you want to open it now?")):
                 return
 
-        xprv = wallet.keystore.get_master_private_key(password)
+        xprv = wallet.get_master_private_key(key, password)
         if not xprv:
             return
         try:
-            k = bitcoin.deserialize_xkey(xprv)[-1].encode('hex')
-            EC = bitcoin.EC_KEY(k.decode('hex'))
+            k = stratis.deserialize_xkey(xprv)[-1].encode('hex')
+            EC = stratis.EC_KEY(k.decode('hex'))
             message = EC.decrypt_message(message)
         except Exception as e:
             traceback.print_exc(file=sys.stdout)

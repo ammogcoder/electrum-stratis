@@ -47,14 +47,14 @@ from collections import namedtuple, defaultdict
 from i18n import _
 from util import NotEnoughFunds, PrintError, UserCancelled, profiler
 
-from bitcoin import *
+from stratis import *
 from version import *
 from keystore import load_keystore, Hardware_KeyStore
 from storage import multisig_type
 
 from transaction import Transaction
 from plugins import run_hook
-import bitcoin
+import stratis
 import coinchooser
 from synchronizer import Synchronizer
 from verifier import SPV
@@ -98,7 +98,6 @@ class Abstract_Wallet(PrintError):
         self.frozen_addresses      = set(storage.get('frozen_addresses',[]))
         self.stored_height         = storage.get('stored_height', 0)       # last known height (for offline mode)
         self.history               = storage.get('addr_history',{})        # address -> list(txid, height)
-
         self.load_keystore()
         self.load_addresses()
         self.load_transactions()
@@ -254,33 +253,28 @@ class Abstract_Wallet(PrintError):
     def is_change(self, address):
         if not self.is_mine(address):
             return False
-        return address in self.change_addresses
+        s = self.get_address_index(address)
+        if s is None:
+            return False
+        return s[0] == 1
 
     def get_address_index(self, address):
-        if self.keystore.can_import():
-            i = self.receiving_addresses.index(address)
-            return self.receiving_pubkeys[i]
-        elif address in self.receiving_addresses:
+        if address in self.receiving_addresses:
             return False, self.receiving_addresses.index(address)
         if address in self.change_addresses:
             return True, self.change_addresses.index(address)
         raise Exception("Address not found", address)
 
-    def get_pubkey_index(self, pubkey):
-        if self.keystore.can_import():
-            assert pubkey in self.receiving_pubkeys
-            return pubkey
-        elif pubkey in self.receiving_pubkeys:
-            return False, self.receiving_pubkeys.index(pubkey)
-        if pubkey in self.change_pubkeys:
-            return True, self.change_pubkeys.index(pubkey)
-        raise Exception("Pubkey not found", pubkey)
-
     def get_private_key(self, address, password):
         if self.is_watching_only():
             return []
-        index = self.get_address_index(address)
-        pk = self.keystore.get_private_key(index, password)
+        if self.keystore.can_import():
+            i = self.receiving_addresses.index(address)
+            pubkey = self.receiving_pubkeys[i]
+            pk = self.keystore.get_private_key(pubkey, password)
+        else:
+            sequence = self.get_address_index(address)
+            pk = self.keystore.get_private_key(sequence, password)
         return [pk]
 
     def get_public_key(self, address):
@@ -515,7 +509,7 @@ class Abstract_Wallet(PrintError):
         received, sent = self.get_addr_io(address)
         return sum([v for height, v, is_cb in received.values()])
 
-    # return the balance of a bitcoin address: confirmed and matured, unconfirmed, unmatured
+    # return the balance of a stratis address: confirmed and matured, unconfirmed, unmatured
     def get_addr_balance(self, address):
         received, sent = self.get_addr_io(address)
         c = u = x = 0
@@ -773,7 +767,7 @@ class Abstract_Wallet(PrintError):
         if b and self.network and self.network.dynfee(i):
             return self.network.dynfee(i)
         else:
-            return config.get('fee_per_kb', bitcoin.RECOMMENDED_FEE)
+            return config.get('fee_per_kb', stratis.RECOMMENDED_FEE)
 
     def get_tx_status(self, tx_hash, height, conf, timestamp):
         from util import format_time
@@ -824,7 +818,7 @@ class Abstract_Wallet(PrintError):
         for type, data, value in outputs:
             if type == TYPE_ADDRESS:
                 if not is_address(data):
-                    raise BaseException("Invalid bitcoin address:" + data)
+                    raise BaseException("Invalid stratis address:" + data)
 
         # Avoid index-out-of-range with coins[0] below
         if not coins:
@@ -1144,7 +1138,7 @@ class Abstract_Wallet(PrintError):
         if not r:
             return
         out = copy.copy(r)
-        out['URI'] = 'bitcoin:' + addr + '?amount=' + util.format_satoshis(out.get('amount'))
+        out['URI'] = 'stratis:' + addr + '?amount=' + util.format_satoshis(out.get('amount'))
         status, conf = self.get_request_status(addr)
         out['status'] = status
         if conf is not None:
@@ -1389,6 +1383,13 @@ class P2PK_Wallet(Abstract_Wallet):
     def get_public_keys(self, address):
         return [self.get_public_key(address)]
 
+    def get_pubkey_index(self, pubkey):
+        if pubkey in self.receiving_pubkeys:
+            return False, self.receiving_pubkeys.index(pubkey)
+        if pubkey in self.change_pubkeys:
+            return True, self.change_pubkeys.index(pubkey)
+        raise BaseExeption('pubkey not found')
+
     def add_input_sig_info(self, txin, address):
         if not self.keystore.can_import():
             txin['derivation'] = derivation = self.get_address_index(address)
@@ -1405,12 +1406,12 @@ class P2PK_Wallet(Abstract_Wallet):
         txin['num_sig'] = 1
 
     def sign_message(self, address, message, password):
-        index = self.get_address_index(address)
-        return self.keystore.sign_message(index, message, password)
+        sequence = self.get_address_index(address)
+        return self.keystore.sign_message(sequence, message, password)
 
     def decrypt_message(self, pubkey, message, password):
-        index = self.get_pubkey_index(pubkey)
-        return self.keystore.decrypt_message(index, message, password)
+        sequence = self.get_pubkey_index(pubkey)
+        return self.keystore.decrypt_message(sequence, message, password)
 
 
 class Deterministic_Wallet(Abstract_Wallet):
