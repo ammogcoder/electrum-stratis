@@ -325,10 +325,12 @@ class Network(util.DaemonThread):
         from stratis import RECOMMENDED_FEE
         if i < 4:
             j = FEE_TARGETS[i]
-            fee = self.fee_estimates.get(j)
+            #fee = self.fee_estimates.get(j)
+            fee = 10000
         else:
             assert i == 4
-            fee = self.fee_estimates.get(2)
+            #fee = self.fee_estimates.get(2)
+            fee = 10000
             if fee is not None:
                 fee += fee/2
         if fee is not None:
@@ -530,7 +532,8 @@ class Network(util.DaemonThread):
                 self.notify('fee')
         elif method == 'blockchain.relayfee':
             if error is None:
-                self.relay_fee = 10000
+                #self.relay_fee = int(result * COIN)
+                self.relay_fee = 5000
                 self.print_error("relayfee", self.relay_fee)
         elif method == 'blockchain.block.get_chunk':
             self.on_get_chunk(interface, response)

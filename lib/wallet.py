@@ -554,6 +554,8 @@ class Abstract_Wallet(PrintError):
             outputs = [(_type, addr, sendable)]
             dummy_tx = Transaction.from_io(inputs, outputs)
             fee = self.estimate_fee(config, dummy_tx.estimated_size())
+        if fee < 10000:
+            fee = 10000
         amount = max(0, sendable - fee)
         return amount, fee
 
