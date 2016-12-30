@@ -29,8 +29,7 @@ import os
 import util
 from stratis import *
 
-# MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
-MAX_TARGET = 0x02710
+MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
 
 class Blockchain(util.PrintError):
     '''Manages blockchain headers and their verification'''
@@ -53,40 +52,18 @@ class Blockchain(util.PrintError):
         prev_hash = self.hash_header(prev_header)
         assert prev_hash == header.get('prev_block_hash'), "prev hash mismatch: %s vs %s" % (prev_hash, header.get('prev_block_hash'))
         #assert bits == header.get('bits'), "bits mismatch: %s vs %s" % (bits, header.get('bits'))
-        _hash = self.hash_header(header)
-        assert int('0x' + _hash, 16) <= target, "insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target)
+        #_hash = self.hash_header(header)
+        #assert int('0x' + _hash, 16) <= target, "insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target)
     
-    
-    # def verify_chain(self, chain):
-    #     first_header = chain[0]
-    #     prev_header = self.read_header(first_header.get('block_height') - 1)
-    #     for header in chain:
-    #         height = header.get('block_height')
-    #         bits, target = self.get_target(height / 2016, chain)
-    #         self.verify_header(header, prev_header, bits, target)
-    #         prev_header = header
     def verify_chain(self, chain):
         first_header = chain[0]
         prev_header = self.read_header(first_header.get('block_height') - 1)
         for header in chain:
             height = header.get('block_height')
-            prev_hash = self.hash_header(prev_header)
-            _hash = self.hash_header(header)
-            assert prev_hash == header.get('prev_block_hash')
+            bits, target = self.get_target(height / 2016, chain)
+            self.verify_header(header, prev_header, bits, target)
             prev_header = header
 
-
-    # def verify_chunk(self, index, data):
-    #     num = len(data) / 80
-    #     prev_header = None
-    #     if index != 0:
-    #         prev_header = self.read_header(index*2016 - 1)
-    #     bits, target = self.get_target(index)
-    #     for i in range(num):
-    #         raw_header = data[i*80:(i+1) * 80]
-    #         header = self.deserialize_header(raw_header)
-    #         self.verify_header(header, prev_header, bits, target)
-    #         prev_header = header
     def verify_chunk(self, index, data):
         num = len(data) / 80
         prev_header = None
@@ -94,17 +71,14 @@ class Blockchain(util.PrintError):
             previous_hash = ("0"*64)
         else:
             prev_header = self.read_header(index*2016 - 1)
-            if prev_header is None: raise
-            previous_hash = self.hash_header(prev_header)
+        # if index != 0:
+        #     prev_header = self.read_header(index*2016 - 1)
+        bits, target = self.get_target(index)
         for i in range(num):
-            height = index*2016 + i
-            raw_header = data[i*80:(i+1)*80]
+            raw_header = data[i*80:(i+1) * 80]
             header = self.deserialize_header(raw_header)
-            _hash = self.hash_header(header)
-            assert previous_hash == header.get('prev_block_hash')
-            previous_header = header
-            previous_hash = _hash
-
+            self.verify_header(header, prev_header, bits, target)
+            prev_header = header
 
     def serialize_header(self, res):
         s = int_to_hex(res.get('version'), 4) \
@@ -187,59 +161,49 @@ class Blockchain(util.PrintError):
                 return h
 
     def get_target(self, index, chain=None):
-        if index == 0:
-            return 0x1e0fffff, MAX_TARGET
-        # Stratis: go back the full period unless it's the first retarget
-        first = self.read_header((index-1) * 2016)
-        last = self.read_header(index*2016 - 1)
+        if chain is None:
+            chain = []  # Do not use mutables as default values!
+
+        max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+        if index == 0: return 0x1d00ffff, max_target
+
+        first = self.read_header((index-1)*2016)
+        last = self.read_header(index*2016-1)
         if last is None:
             for h in chain:
-                if h.get('block_height') == index*2016 - 1:
+                if h.get('block_height') == index*2016-1:
                     last = h
-        assert last is not None
-        # bits to target
-        bits = last.get('bits')
-        bitsN = (bits >> 24) & 0xff
-        assert bitsN >= 0x03 and bitsN <= 0x1d, "First part of bits should be in [0x03, 0x1d]"
-        bitsBase = bits & 0xffffff
-        assert bitsBase >= 0x8000 and bitsBase <= 0x7fffff, "Second part of bits should be in [0x8000, 0x7fffff]"
-        target = bitsBase << (8 * (bitsN-3))
-        # new target
+
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 60
-        
-        #nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
-        #nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        #new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
-        
-        bnTargetLimit = 10000
-        nTargetSpacing = 60
-        nInterval = nTargetTimespan / nTargetSpacing
-        bnNew = last.get('bits')
-        bnNew *= ((nInterval - 1) * nTargetSpacing + nActualTimespan + nActualTimespan)
-        bnNew = bnNew / ((nInterval + 1) * nTargetSpacing)
+        nTargetTimespan = 14*24*60*60
+        nActualTimespan = max(nActualTimespan, nTargetTimespan/4)
+        nActualTimespan = min(nActualTimespan, nTargetTimespan*4)
 
-        if bnNew <= 0:
-            bnNew = bnTargetLimit
-        
-        if bnNew > bnTargetLimit:
-            bnNew = bnTargetLimit
+        bits = last.get('bits')
+        # convert to bignum
+        MM = 256*256*256
+        a = bits%MM
+        if a < 0x8000:
+            a *= 256
+        target = (a) * pow(2, 8 * (bits/MM - 3))
 
-        new_target = bnNew
+        # new target
+        new_target = min( max_target, (target * nActualTimespan)/nTargetTimespan )
 
-        self.print_msg("New target: ", new_target)
-
-        # convert new target to bits
-        c = ("%064x" % new_target)[2:]
-        while c[:2] == '00' and len(c) > 6:
+        # convert it to bits
+        c = ("%064X"%new_target)[2:]
+        i = 31
+        while c[0:2]=="00":
             c = c[2:]
-        bitsN, bitsBase = len(c) / 2, int('0x' + c[:6], 16)
-        if bitsBase >= 0x800000:
-            bitsN += 1
-            bitsBase >>= 8
-        new_bits = bitsN << 24 | bitsBase
-        self.print_msg("New bits: ", new_bits)
-        return new_bits, bitsBase << (8 * (bitsN-3))
+            i -= 1
+
+        c = int('0x'+c[0:6],16)
+        if c >= 0x800000:
+            c /= 256
+            i += 1
+
+        new_bits = c + MM * i
+        return new_bits, new_target
 
     def connect_header(self, chain, header):
         '''Builds a header chain until it connects.  Returns True if it has
