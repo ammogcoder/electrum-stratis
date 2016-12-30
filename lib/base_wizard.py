@@ -71,7 +71,7 @@ class BaseWizard(object):
 
     def new(self):
         name = os.path.basename(self.storage.path)
-        title = _("Welcome to the Electrum installation wizard.")
+        title = _("Welcome to the Electrum Stratis installation wizard.")
         message = '\n'.join([
             _("The wallet '%s' does not exist.") % name,
             _("What kind of wallet do you want to create?")
@@ -302,7 +302,7 @@ class BaseWizard(object):
     def on_bip44(self, seed, passphrase, account_id):
         k = keystore.BIP32_KeyStore({})
         bip32_seed = keystore.bip39_to_seed(seed, passphrase)
-        derivation = "m/44'/0'/%d'"%account_id
+        derivation = "m/44'/2'/%d'"%account_id
         k.add_xprv_from_seed(bip32_seed, derivation)
         self.on_keystore(k)
 
@@ -392,5 +392,5 @@ class BaseWizard(object):
             self.wallet.synchronize()
             self.wallet.storage.write()
             self.terminate()
-        msg = _("Electrum is generating your addresses, please wait.")
+        msg = _("Electrum Stratis is generating your addresses, please wait.")
         self.waiting_dialog(task, msg)

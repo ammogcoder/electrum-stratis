@@ -44,7 +44,7 @@ COINBASE_MATURITY = 50
 COIN = 100000000
 
 # supported types of transction outputs
-TYPE_ADDRESS = 63
+TYPE_ADDRESS = 0
 TYPE_PUBKEY  = 1
 TYPE_SCRIPT  = 2
 
