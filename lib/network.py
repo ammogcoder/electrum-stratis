@@ -48,6 +48,7 @@ DEFAULT_PORTS = {'t':'50001', 's':'50002', 'h':'8081', 'g':'8082'}
 
 DEFAULT_SERVERS = {
     'electrum.stratisplatform.com': DEFAULT_PORTS,
+    'electrum2.stratisplatform.com': DEFAULT_PORTS,
 }
 
 NODES_RETRY_INTERVAL = 60
