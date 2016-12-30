@@ -16,3 +16,4 @@ packages
 *.egg/
 /electrum.py
 gui/qt/icons_rc.py
+contrib/build-wine/tmp/
