@@ -110,7 +110,7 @@ class ElectrumGui:
             submenu = m.addMenu(window.wallet.basename())
             submenu.addAction(_("Show/Hide"), window.show_or_hide)
             submenu.addAction(_("Close"), window.close)
-        m.addAction(_("Dark/Light"), self.toggle_tray_icon)
+        #m.addAction(_("Dark/Light"), self.toggle_tray_icon)
         m.addSeparator()
         m.addAction(_("Exit Electrum-Stratis"), self.close)
         self.tray.setContextMenu(m)
