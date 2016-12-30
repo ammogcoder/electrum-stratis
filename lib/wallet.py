@@ -554,8 +554,6 @@ class Abstract_Wallet(PrintError):
             outputs = [(_type, addr, sendable)]
             dummy_tx = Transaction.from_io(inputs, outputs)
             fee = self.estimate_fee(config, dummy_tx.estimated_size())
-        if fee < 10000:
-            fee = 10000
         amount = max(0, sendable - fee)
         return amount, fee
 
@@ -865,6 +863,8 @@ class Abstract_Wallet(PrintError):
 
     def estimate_fee(self, config, size):
         fee = int(self.fee_per_kb(config) * size / 1000.)
+        if fee < 10000:
+            fee = 10000
         return fee
 
     def mktx(self, outputs, password, config, fee=None, change_addr=None, domain=None):
