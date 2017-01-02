@@ -67,12 +67,8 @@ class Blockchain(util.PrintError):
     def verify_chunk(self, index, data):
         num = len(data) / 80
         prev_header = None
-        if index == 0:
-            previous_hash = ("0"*64)
-        else:
+        if index != 0:
             prev_header = self.read_header(index*2016 - 1)
-        # if index != 0:
-        #     prev_header = self.read_header(index*2016 - 1)
         bits, target = self.get_target(index)
         for i in range(num):
             raw_header = data[i*80:(i+1) * 80]
