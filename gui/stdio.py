@@ -174,7 +174,7 @@ class ElectrumGui:
             print(_('Invalid Fee'))
             return
 
-        if self.wallet.use_encryption:
+        if self.wallet.has_password():
             password = self.password_dialog()
             if not password:
                 return
