@@ -54,7 +54,7 @@ class Blockchain(util.PrintError):
         #assert bits == header.get('bits'), "bits mismatch: %s vs %s" % (bits, header.get('bits'))
         #_hash = self.hash_header(header)
         #assert int('0x' + _hash, 16) <= target, "insufficient proof of work: %s vs target %s" % (int('0x' + _hash, 16), target)
-    
+        
     def verify_chain(self, chain):
         first_header = chain[0]
         prev_header = self.read_header(first_header.get('block_height') - 1)
