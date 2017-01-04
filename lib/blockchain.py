@@ -156,39 +156,84 @@ class Blockchain(util.PrintError):
                 h = self.deserialize_header(h)
                 return h
 
+    # def get_target(self, index, chain=None):
+    #     if index == 0:
+    #         return 0x1d00ffff, MAX_TARGET
+    #     first = self.read_header((index-1) * 2016)
+    #     last = self.read_header(index*2016 - 1)
+    #     if last is None:
+    #         for h in chain:
+    #             if h.get('block_height') == index*2016 - 1:
+    #                 last = h
+    #     assert last is not None
+    #     # bits to target
+    #     bits = last.get('bits')
+    #     bitsN = (bits >> 24) & 0xff
+    #     assert bitsN >= 0x03 and bitsN <= 0x1d, "First part of bits should be in [0x03, 0x1d]"
+    #     bitsBase = bits & 0xffffff
+    #     assert bitsBase >= 0x8000 and bitsBase <= 0x7fffff, "Second part of bits should be in [0x8000, 0x7fffff]"
+    #     target = bitsBase << (8 * (bitsN-3))
+    #     # new target
+    #     nActualTimespan = last.get('timestamp') - first.get('timestamp')
+    #     nTargetTimespan = 14 * 24 * 60 * 60
+    #     nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
+    #     nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
+    #     new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
+    #     # convert new target to bits
+    #     c = ("%064x" % new_target)[2:]
+    #     while c[:2] == '00' and len(c) > 6:
+    #         c = c[2:]
+    #     bitsN, bitsBase = len(c) / 2, int('0x' + c[:6], 16)
+    #     if bitsBase >= 0x800000:
+    #         bitsN += 1
+    #         bitsBase >>= 8
+    #     new_bits = bitsN << 24 | bitsBase
+    #     return new_bits, bitsBase << (8 * (bitsN-3))
+
     def get_target(self, index, chain=None):
-        if index == 0:
-            return 0x1d00ffff, MAX_TARGET
-        first = self.read_header((index-1) * 2016)
-        last = self.read_header(index*2016 - 1)
+        if chain is None:
+            chain = []  # Do not use mutables as default values!
+
+        max_target = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
+        if index == 0: return 0x1d00ffff, max_target
+
+        first = self.read_header((index-1)*2016)
+        last = self.read_header(index*2016-1)
         if last is None:
             for h in chain:
-                if h.get('block_height') == index*2016 - 1:
+                if h.get('block_height') == index*2016-1:
                     last = h
-        assert last is not None
-        # bits to target
-        bits = last.get('bits')
-        bitsN = (bits >> 24) & 0xff
-        assert bitsN >= 0x03 and bitsN <= 0x1d, "First part of bits should be in [0x03, 0x1d]"
-        bitsBase = bits & 0xffffff
-        assert bitsBase >= 0x8000 and bitsBase <= 0x7fffff, "Second part of bits should be in [0x8000, 0x7fffff]"
-        target = bitsBase << (8 * (bitsN-3))
-        # new target
+
         nActualTimespan = last.get('timestamp') - first.get('timestamp')
-        nTargetTimespan = 14 * 24 * 60 * 60
-        nActualTimespan = max(nActualTimespan, nTargetTimespan / 4)
-        nActualTimespan = min(nActualTimespan, nTargetTimespan * 4)
-        new_target = min(MAX_TARGET, (target*nActualTimespan) / nTargetTimespan)
-        # convert new target to bits
-        c = ("%064x" % new_target)[2:]
-        while c[:2] == '00' and len(c) > 6:
+        nTargetTimespan = 14*24*60*60
+        nActualTimespan = max(nActualTimespan, nTargetTimespan/4)
+        nActualTimespan = min(nActualTimespan, nTargetTimespan*4)
+
+        bits = last.get('bits')
+        # convert to bignum
+        MM = 256*256*256
+        a = bits%MM
+        if a < 0x8000:
+            a *= 256
+        target = (a) * pow(2, 8 * (bits/MM - 3))
+
+        # new target
+        new_target = min( max_target, (target * nActualTimespan)/nTargetTimespan )
+
+        # convert it to bits
+        c = ("%064X"%new_target)[2:]
+        i = 31
+        while c[0:2]=="00":
             c = c[2:]
-        bitsN, bitsBase = len(c) / 2, int('0x' + c[:6], 16)
-        if bitsBase >= 0x800000:
-            bitsN += 1
-            bitsBase >>= 8
-        new_bits = bitsN << 24 | bitsBase
-        return new_bits, bitsBase << (8 * (bitsN-3))
+            i -= 1
+
+        c = int('0x'+c[0:6],16)
+        if c >= 0x800000:
+            c /= 256
+            i += 1
+
+        new_bits = c + MM * i
+        return new_bits, new_target
 
     def connect_header(self, chain, header):
         '''Builds a header chain until it connects.  Returns True if it has
