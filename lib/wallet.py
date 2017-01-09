@@ -815,7 +815,7 @@ class Abstract_Wallet(PrintError):
             _type, data, value = o
             if _type == TYPE_ADDRESS:
                 if not is_address(data):
-                    raise BaseException("Invalid bitcoin address:" + data)
+                    raise BaseException("Invalid Stratis address:" + data)
             if value == '!':
                 if i_max is not None:
                     raise BaseException("More than one output set to spend max")
@@ -1645,7 +1645,7 @@ class Multisig_Wallet(Deterministic_Wallet):
 
     def pubkeys_to_address(self, pubkeys):
         redeem_script = Transaction.multisig_script(sorted(pubkeys), self.m)
-        address = hash_160_to_bc_address(hash_160(redeem_script.decode('hex')), bitcoin.ADDRTYPE_P2SH)
+        address = hash_160_to_bc_address(hash_160(redeem_script.decode('hex')), stratis.ADDRTYPE_P2SH)
         return address
 
     def new_pubkeys(self, c, i):

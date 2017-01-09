@@ -1143,7 +1143,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
         def format(x):
             h = x.get('prevout_hash')
-            return h[0:10] + '...' + h[-10:] + ":%d"%x.get('prevout_n') + u'\t' + "%s"%x.get('address')
+            return h[0:8] + '...' + h[-8:] + ":%d"%x.get('prevout_n') + u'\t' + "%s"%x.get('address')
 
         for item in self.pay_from:
             self.from_list.addTopLevelItem(QTreeWidgetItem( [format(item), self.format_amount(item['value']) ]))
@@ -2620,7 +2620,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
             (fee_widgets, _('Fees')),
             (tx_widgets, _('Transactions')),
             (gui_widgets, _('Appearance')),
-            (fiat_widgets, _('Fiat')),
+            #(fiat_widgets, _('Fiat')),
             (id_widgets, _('Identity')),
         ]
         for widgets, name in tabs_info:

@@ -27,6 +27,7 @@
 
 import os
 import util
+import stratis
 from stratis import *
 
 MAX_TARGET = 0x00000000FFFF0000000000000000000000000000000000000000000000000000
@@ -36,7 +37,6 @@ class Blockchain(util.PrintError):
     def __init__(self, config, network):
         self.config = config
         self.network = network
-        self.headers_url = "http://seed.stratisplatform.com/blockchain_headers"
         self.local_height = 0
         self.set_local_height()
 
@@ -114,8 +114,8 @@ class Blockchain(util.PrintError):
         try:
             import urllib, socket
             socket.setdefaulttimeout(30)
-            self.print_error("downloading ", bitcoin.HEADERS_URL)
-            urllib.urlretrieve(bitcoin.HEADERS_URL, filename + '.tmp')
+            self.print_error("downloading ", stratis.HEADERS_URL)
+            urllib.urlretrieve(stratis.HEADERS_URL, filename + '.tmp')
             os.rename(filename + '.tmp', filename)
             self.print_error("done.")
         except Exception:

@@ -38,11 +38,11 @@ import aes
 
 # Bitcoin network constants
 TESTNET = False
-ADDRTYPE_P2PKH = 0
-ADDRTYPE_P2SH = 5
-XPRV_HEADER = "0488ade4"
-XPUB_HEADER = "0488b21e"
-HEADERS_URL = "https://headers.electrum.org/blockchain_headers"
+ADDRTYPE_P2PKH = 63
+ADDRTYPE_P2SH = 125
+XPRV_HEADER = "0488b2dd"
+XPUB_HEADER = "0488c21e"
+HEADERS_URL = "http://seed.stratisplatform.com/blockchain_headers"
 
 def set_testnet():
     global ADDRTYPE_P2PKH, ADDRTYPE_P2SH
@@ -53,7 +53,7 @@ def set_testnet():
     ADDRTYPE_P2SH = 196
     XPRV_HEADER = "04358394"
     XPUB_HEADER = "043587cf"
-    HEADERS_URL = "https://headers.electrum.org/testnet_headers"
+    HEADERS_URL = "http://seed.stratisplatform.com/blockchain_headers_testnet"
 
 ################################## transactions
 
