@@ -211,7 +211,7 @@ class SettingsDialog(Factory.Popup):
 
     def fee_status(self):
         if self.config.get('dynamic_fees', True):
-            from electrum.util import fee_levels
+            from electrum_stratis.util import fee_levels
             return fee_levels[self.config.get('fee_level', 2)]
         else:
             F = self.config.get('fee_per_kb', RECOMMENDED_FEE)

@@ -2166,7 +2166,7 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
 
     def plot_history_dialog(self):
         try:
-            from electrum.plot import plot_history
+            from electrum_stratis.plot import plot_history
         except ImportError as e:
             self.show_error(str(e))
             return
@@ -2748,8 +2748,8 @@ class ElectrumWindow(QMainWindow, MessageBoxMixin, PrintError):
         d.exec_()
 
     def create_fee_slider(self, parent, callback):
-        from electrum.util import fee_levels
-        from electrum.bitcoin import FEE_STEP, RECOMMENDED_FEE
+        from electrum_stratis.util import fee_levels
+        from electrum_stratis.stratis import FEE_STEP, RECOMMENDED_FEE
         fee_slider = QSlider(Qt.Horizontal, parent)
         def slider_moved():
             pos = fee_slider.sliderPosition()
