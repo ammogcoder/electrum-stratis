@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # You probably need to update only this link
-ELECTRUM_GIT_URL=git://github.com/dev0tion/electrum-stratis.git
+ELECTRUM_GIT_URL=git://github.com/stratisproject/electrum-stratis.git
 BRANCH=master
 NAME_ROOT=electrum-stratis
 
