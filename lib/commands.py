@@ -404,11 +404,7 @@ class Commands:
         final_outputs = []
         for address, amount in outputs:
             address = self._resolver(address)
-            if amount == '!':
-                assert len(outputs) == 1
-                inputs = self.wallet.get_spendable_coins(domain)
-                amount, fee = self.wallet.get_max_amount(self.config, inputs, (TYPE_ADDRESS, address), fee)
-            else:
+            if amount != '!':
                 amount = int(COIN*Decimal(amount))
             final_outputs.append((TYPE_ADDRESS, address, amount))
 
@@ -750,6 +746,7 @@ def get_parser():
     group.add_argument("-D", "--dir", dest="electrum_path", help="electrum directory")
     group.add_argument("-P", "--portable", action="store_true", dest="portable", default=False, help="Use local 'electrum-stratis_data' directory")
     group.add_argument("-w", "--wallet", dest="wallet_path", help="wallet path")
+    group.add_argument("--testnet", action="store_true", dest="testnet", default=False, help="Use Testnet")
     # create main parser
     parser = argparse.ArgumentParser(
         parents=[parent_parser],
@@ -766,7 +763,7 @@ def get_parser():
     add_network_options(parser_gui)
     # daemon
     parser_daemon = subparsers.add_parser('daemon', parents=[parent_parser], help="Run Daemon")
-    parser_daemon.add_argument("subcommand", choices=['start', 'status', 'stop'])
+    parser_daemon.add_argument("subcommand", choices=['start', 'status', 'stop'], nargs='?')
     #parser_daemon.set_defaults(func=run_daemon)
     add_network_options(parser_daemon)
     # commands
