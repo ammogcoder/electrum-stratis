@@ -214,7 +214,7 @@ def android_data_dir():
     return PythonActivity.mActivity.getFilesDir().getPath() + '/data'
 
 def android_headers_path():
-    path = android_ext_dir() + '/com.stratisplatform/download/blockchain_headers'
+    path = android_ext_dir() + '/com.stratisplatform.seed/download/blockchain_headers'
     d = os.path.dirname(path)
     if not os.path.exists(d):
         os.mkdir(d)
@@ -243,14 +243,14 @@ def get_headers_path(config):
         return os.path.join(config.path, 'blockchain_headers')
 
 def user_dir():
-    if "HOME" in os.environ:
+    if 'ANDROID_DATA' in os.environ:
+        return android_check_data_dir()
+    elif os.name == 'posix':
         return os.path.join(os.environ["HOME"], ".electrum-stratis")
     elif "APPDATA" in os.environ:
         return os.path.join(os.environ["APPDATA"], "Electrum-Stratis")
     elif "LOCALAPPDATA" in os.environ:
         return os.path.join(os.environ["LOCALAPPDATA"], "Electrum-Stratis")
-    elif 'ANDROID_DATA' in os.environ:
-        return android_check_data_dir()
     else:
         #raise Exception("No home directory found in environment variables.")
         return

@@ -7,7 +7,7 @@
 ;Variables
 
   !define PRODUCT_NAME "Electrum-Stratis"
-  !define PRODUCT_WEB_SITE "https://github.com/dev0tion/electrum-stratis"
+  !define PRODUCT_WEB_SITE "https://github.com/stratisproject/electrum-stratis"
   !define PRODUCT_PUBLISHER "Stratis"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 

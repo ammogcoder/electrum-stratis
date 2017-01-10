@@ -211,7 +211,7 @@ class SettingsDialog(Factory.Popup):
 
     def fee_status(self):
         if self.config.get('dynamic_fees', True):
-            from electrum.util import fee_levels
+            from electrum_stratis.util import fee_levels
             return fee_levels[self.config.get('fee_level', 2)]
         else:
             F = self.config.get('fee_per_kb', RECOMMENDED_FEE)
@@ -242,10 +242,10 @@ class SettingsDialog(Factory.Popup):
         self._rbf_dialog.open()
 
     def fx_status(self):
-        p = self.plugins.get('exchange_rate')
-        if p:
-            source = p.exchange.name()
-            ccy = p.get_currency()
+        fx = self.app.fx
+        if fx.is_enabled():
+            source = fx.exchange.name()
+            ccy = fx.get_currency()
             return '%s [%s]' %(ccy, source)
         else:
             return 'Disabled'

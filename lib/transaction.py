@@ -377,7 +377,7 @@ def get_address_from_output_script(bytes):
     # DUP HASH160 20 BYTES:... EQUALVERIFY CHECKSIG
     match = [ opcodes.OP_DUP, opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUALVERIFY, opcodes.OP_CHECKSIG ]
     if match_decoded(decoded, match):
-        return TYPE_ADDRESS, hash_160_to_bc_address(decoded[2][1])
+        return TYPE_ADDRESS, hash160_to_p2pkh(decoded[2][1])
 
     # p2sh
     match = [ opcodes.OP_HASH160, opcodes.OP_PUSHDATA4, opcodes.OP_EQUAL ]
