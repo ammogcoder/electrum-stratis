@@ -2,7 +2,7 @@
 
 # You probably need to update only this link
 ELECTRUM_GIT_URL=git://github.com/stratisproject/electrum-stratis.git
-BRANCH=master
+BRANCH=dev
 NAME_ROOT=electrum-stratis
 
 
@@ -23,7 +23,7 @@ if [ -d "electrum-stratis-git" ]; then
     # GIT repository found, update it
     echo "Pull"
     cd electrum-stratis-git
-    git checkout master
+    git checkout $BRANCH
     git pull
     cd ..
 else

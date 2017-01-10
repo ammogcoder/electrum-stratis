@@ -60,6 +60,8 @@ def set_testnet():
 FEE_STEP = 10000
 RECOMMENDED_FEE = 50000
 COINBASE_MATURITY = 50
+MAX_FEE_RATE = 100000
+FEE_TARGETS = [25, 10, 5, 2]
 COIN = 100000000
 
 # supported types of transction outputs
