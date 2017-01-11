@@ -207,6 +207,8 @@ class SimpleConfig(PrintError):
                 fee += fee/2
         if fee is not None:
             fee = min(5*MAX_FEE_RATE, fee)
+        if fee < 10000:
+            fee = 10000
         return fee
 
     def reverse_dynfee(self, fee_per_kb):
