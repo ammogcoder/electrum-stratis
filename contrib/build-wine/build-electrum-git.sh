@@ -23,7 +23,7 @@ if [ -d "electrum-stratis-git" ]; then
     # GIT repository found, update it
     echo "Pull"
     cd electrum-stratis-git
-    git checkout master
+    git checkout $BRANCH
     git pull
     cd ..
 else
