@@ -623,7 +623,7 @@ def is_old_mpk(mpk):
     return len(mpk) == 128
 
 def is_xpub(text):
-    if text[0:4] != 'xpub':
+    if text[0:4] not in ('xpub', 'xq5h'):
         return False
     try:
         deserialize_xkey(text)
@@ -632,7 +632,7 @@ def is_xpub(text):
         return False
 
 def is_xprv(text):
-    if text[0:4] != 'xprv':
+    if text[0:4] not in ('xpriv'):
         return False
     try:
         deserialize_xkey(text)
