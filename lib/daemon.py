@@ -110,7 +110,7 @@ def get_rpc_credentials(config):
 
 class Daemon(DaemonThread):
 
-    def __init__(self, config, fd):
+    def __init__(self, config, fd, is_gui):
         DaemonThread.__init__(self)
         self.config = config
         if config.get('offline'):
@@ -127,10 +127,9 @@ class Daemon(DaemonThread):
         # Setup JSONRPC server
         path = config.get_wallet_path()
         default_wallet = self.load_wallet(path)
-        self.cmd_runner = Commands(self.config, default_wallet, self.network)
-        self.init_server(config, fd)
+        self.init_server(config, fd, is_gui)
 
-    def init_server(self, config, fd):
+    def init_server(self, config, fd, is_gui):
         host = config.get('rpchost', '127.0.0.1')
         port = config.get('rpcport', 0)
         rpc_user, rpc_password = get_rpc_credentials(config)
@@ -143,14 +142,17 @@ class Daemon(DaemonThread):
             return
         os.write(fd, repr((server.socket.getsockname(), time.time())))
         os.close(fd)
-        server.timeout = 0.1
-        for cmdname in known_commands:
-            server.register_function(getattr(self.cmd_runner, cmdname), cmdname)
-        server.register_function(self.run_cmdline, 'run_cmdline')
-        server.register_function(self.ping, 'ping')
-        server.register_function(self.run_daemon, 'daemon')
-        server.register_function(self.run_gui, 'gui')
         self.server = server
+        server.timeout = 0.1
+        server.register_function(self.ping, 'ping')
+        if is_gui:
+            server.register_function(self.run_gui, 'gui')
+        else:
+            self.cmd_runner = Commands(self.config, None, self.network)
+            for cmdname in known_commands:
+                server.register_function(getattr(self.cmd_runner, cmdname), cmdname)
+            server.register_function(self.run_cmdline, 'run_cmdline')
+            server.register_function(self.run_daemon, 'daemon')
 
     def ping(self):
         return True
