@@ -187,12 +187,13 @@ class Daemon(DaemonThread):
     def run_gui(self, config_options):
         config = SimpleConfig(config_options)
         if self.gui:
-            if hasattr(self.gui, 'new_window'):
-                path = config.get_wallet_path()
-                self.gui.new_window(path, config.get('url'))
-                response = "ok"
-            else:
-                response = "error: current GUI does not support multiple windows"
+            # if hasattr(self.gui, 'new_window'):
+            #     path = config.get_wallet_path()
+            #     self.gui.new_window(path, config.get('url'))
+            #     response = "ok"
+            # else:
+            #     response = "error: current GUI does not support multiple windows"
+            response = "error: Electrum GUI already running"
         else:
             response = "Error: Electrum is running in daemon mode. Please stop the daemon first."
         return response
