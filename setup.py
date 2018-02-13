@@ -36,7 +36,7 @@ setup(
     name="Electrum-Stratis",
     version=version.ELECTRUM_VERSION,
     install_requires=[
-        'slowaes>=0.1a1',
+        'pyaes',
         'ecdsa>=0.9',
         'pbkdf2',
         'requests',
@@ -44,6 +44,7 @@ setup(
         'protobuf',
         'dnspython',
         'jsonrpclib',
+        'PySocks>=1.6.6',
     ],
     packages=[
         'electrum_stratis',

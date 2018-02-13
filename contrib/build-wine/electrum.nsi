@@ -8,7 +8,7 @@
 
   !define PRODUCT_NAME "Electrum-Stratis"
   !define PRODUCT_WEB_SITE "https://github.com/stratisproject/electrum-stratis"
-  !define PRODUCT_PUBLISHER "Stratis"
+  !define PRODUCT_PUBLISHER "Stratis Group Ltd"
   !define PRODUCT_UNINST_KEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\${PRODUCT_NAME}"
 
 ;--------------------------------
@@ -104,6 +104,11 @@ FunctionEnd
 Section
   SetOutPath $INSTDIR
 
+  ;Uninstall previous version files
+  RMDir /r "$INSTDIR\*.*"
+  Delete "$DESKTOP\${PRODUCT_NAME}.lnk"
+  Delete "$SMPROGRAMS\${PRODUCT_NAME}\*.*"
+  
   ;Files to pack into the installer
   File /r "dist\electrum-stratis\*.*"
   File "..\..\icons\electrum.ico"
@@ -117,19 +122,19 @@ Section
 
   ;Create desktop shortcut
   DetailPrint "Creating desktop shortcut..."
-  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-stratis.exe" ""
+  CreateShortCut "$DESKTOP\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-stratis-${PRODUCT_VERSION}.exe" ""
 
   ;Create start-menu items
   DetailPrint "Creating start-menu items..."
   CreateDirectory "$SMPROGRAMS\${PRODUCT_NAME}"
   CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\Uninstall.lnk" "$INSTDIR\Uninstall.exe" "" "$INSTDIR\Uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-stratis.exe" "" "$INSTDIR\electrum-stratis.exe" 0
+  CreateShortCut "$SMPROGRAMS\${PRODUCT_NAME}\${PRODUCT_NAME}.lnk" "$INSTDIR\electrum-stratis-${PRODUCT_VERSION}.exe" "" "$INSTDIR\electrum-stratis-${PRODUCT_VERSION}.exe" 0
 
   ;Links stratis: URI's to Electrum
   WriteRegStr HKCU "Software\Classes\stratis" "" "URL:stratis Protocol"
   WriteRegStr HKCU "Software\Classes\stratis" "URL Protocol" ""
   WriteRegStr HKCU "Software\Classes\stratis" "DefaultIcon" "$\"$INSTDIR\electrum.ico, 0$\""
-  WriteRegStr HKCU "Software\Classes\stratis\shell\open\command" "" "$\"$INSTDIR\electrum-stratis.exe$\" $\"%1$\""
+  WriteRegStr HKCU "Software\Classes\stratis\shell\open\command" "" "$\"$INSTDIR\electrum-stratis-${PRODUCT_VERSION}.exe$\" $\"%1$\""
 
   ;Adds an uninstaller possibilty to Windows Uninstall or change a program section
   WriteRegStr HKCU "${PRODUCT_UNINST_KEY}" "DisplayName" "$(^Name)"
